@@ -1,0 +1,9 @@
+# TGV on client-side web using leptos
+
+An exercise on deploying scientific computing algorithms on client-side web with Rust frameworks (leptos)
+
+Roadmap
+- [x] Initial implementation
+- [ ] Parallelization with Rayon on webworkers
+- [ ] Better UI for parameter settings
+
