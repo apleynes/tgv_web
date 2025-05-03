@@ -2209,6 +2209,7 @@ dependencies = [
  "ndarray",
  "nshare",
  "rayon",
+ "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-rayon",
  "web-sys",

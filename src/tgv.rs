@@ -6,6 +6,7 @@ use ndarray::{s, Axis, NewAxis, Array, Array1, Array2, Array3, ArrayView, ArrayV
 // use ndarray_rand::RandomExt;
 // use ndarray_rand::rand_distr::Normal;
 use rayon::prelude::*;
+use wasm_bindgen::prelude::*;
 
 fn roll1d(a: &ArrayView1<f32>, roll_amount: i32) -> Array1<f32> {
     
@@ -144,6 +145,7 @@ pub fn tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau
     }
     u
 }
+
 
 pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau: f32, sigma: f32, n_iter: i32) -> Array2<f32> {
     // Split the image into patches

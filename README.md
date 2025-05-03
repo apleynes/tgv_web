@@ -24,6 +24,9 @@ https://github.com/GoogleChromeLabs/wasm-bindgen-rayon/issues/11#issuecomment-93
 pattern_script = '''
 <script type="module">import init, { initThreadPool} from '{base}{js}';await init('{base}{wasm}'); await initThreadPool(navigator.hardwareConcurrency);</script>
 '''
-```
 
+[serve]
+headers = { "Cross-Origin-Embedder-Policy" = "require-corp", "Cross-Origin-Opener-Policy" = "same-origin" }
+```
+https://github.com/trunk-rs/trunk/issues/414#issuecomment-2334096961
 
