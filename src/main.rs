@@ -8,6 +8,7 @@ use base64::{engine::general_purpose, Engine as _};
 // use wasm_bindgen::prelude::*;
 use ndarray::{Array2, Array3, s};
 use nshare::{self, AsNdarray3};
+pub use wasm_bindgen_rayon::init_thread_pool;
 
 
 async fn convert_image_input_to_base_64(input: Option<HtmlInputElement>) -> Result<String, String> {
@@ -79,7 +80,7 @@ async fn process_image(input: Option<HtmlInputElement>, tgv_lam: f32) -> Result<
     // println!("grayscale_img min is {:?}", (&grayscale_img).into_iter().reduce(|a, b| if a < b { a } else { b }));
     // println!("grayscale_img max is {:?}", (&grayscale_img).into_iter().reduce(|a, b| if a > b { a } else { b }));
 
-    let denoised_img = tgv::tgv_denoise(&grayscale_img.view(), tgv_lam, 2.0, 1.0, 0.125, 0.125, 300);
+    let denoised_img = tgv::parallel_tgv_denoise(&grayscale_img.view(), tgv_lam, 2.0, 1.0, 0.125, 0.125, 300);
     // WebAssembly does not allow for parallelization directly using rayon. Needs special handling
     let denoised_img = denoised_img.map(|x| *x as u8);
     let denoised_img = GrayImage::from_raw(img.shape()[0] as u32, img.shape()[1] as u32, denoised_img.into_iter().collect()).unwrap();

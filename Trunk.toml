@@ -1,0 +1,4 @@
+[build]
+pattern_script = '''
+<script type="module">import init, { initThreadPool} from '{base}{js}';await init('{base}{wasm}'); await initThreadPool(navigator.hardwareConcurrency);</script>
+'''
