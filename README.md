@@ -30,3 +30,5 @@ headers = { "Cross-Origin-Embedder-Policy" = "require-corp", "Cross-Origin-Opene
 ```
 https://github.com/trunk-rs/trunk/issues/414#issuecomment-2334096961
 
+https://github.com/trunk-rs/trunk/tree/main/examples/wasm_threads
+
