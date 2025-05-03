@@ -238,5 +238,6 @@ fn App() -> impl IntoView {
 
 fn main() {
     console_error_panic_hook::set_once();
+    leptos::attr::csp("worker-src 'self' blob:;");
     leptos::mount::mount_to_body(App)
 }

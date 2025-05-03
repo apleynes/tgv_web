@@ -7,3 +7,4 @@ pattern_script = '''
 "cross-origin-embedder-policy"= "require-corp"
 "cross-origin-opener-policy"= "same-origin"
 "cross-origin-resource-policy"= "same-site"
+"content-security-policy"="worker-src 'self' blob:;"
