@@ -1,5 +1,7 @@
 // Library version of main.rs
 
+use core::num;
+
 use ndarray::{s, Axis, NewAxis, Array, Array1, Array2, Array3, ArrayView, ArrayView1, ArrayView2, ArrayView3};
 // use ndarray::linalg;
 // use ndarray_linalg::Norm;
@@ -147,11 +149,41 @@ pub fn tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau
 }
 
 
+fn centered_hamming_window(shape: (usize, usize)) -> Array2<f32> {
+    let (h, w) = shape;
+    let hamming_row = Array1::from_shape_fn(h, |i| {
+        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / (h - 1) as f32).cos()
+    });
+    let hamming_col = Array1::from_shape_fn(w, |i| {
+        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / (w - 1) as f32).cos()
+    });
+    let hamming_window = Array2::from_shape_fn((h, w), |(i, j)| {
+        hamming_row[i] * hamming_col[j]
+    });
+    hamming_window
+}
+
+
 pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau: f32, sigma: f32, n_iter: i32) -> Array2<f32> {
     // Split the image into patches
-    let patch_size = 32;
-    let num_patches_x = u0.shape()[0] / patch_size;
-    let num_patches_y = u0.shape()[1] / patch_size;
+    let patch_size = 64;
+    let patch_overlap = 16;
+    // let num_patches_x = u0.shape()[0] / patch_size;
+    // let num_patches_y = u0.shape()[1] / patch_size;
+    let org_shape = u0.shape();
+
+    // Calculate new shape to get integer number of patches with the given overlap
+    let new_shape = (
+        (org_shape[0] + patch_size - 1) / (patch_size - patch_overlap) * (patch_size - patch_overlap),
+        (org_shape[1] + patch_size - 1) / (patch_size - patch_overlap) * (patch_size - patch_overlap),
+    );
+    let mut padded_u0 = Array2::<f32>::zeros((new_shape.0, new_shape.1));
+    padded_u0.slice_mut(s![..org_shape[0], ..org_shape[1]]).assign(u0);
+    let u0 = padded_u0;
+
+    // Calculate the number of patches in each dimension
+    let num_patches_x = (u0.shape()[0] - patch_overlap) / (patch_size - patch_overlap);
+    let num_patches_y = (u0.shape()[1] - patch_overlap) / (patch_size - patch_overlap);
 
     // Create a vector to store the denoised patches
     // let mut patches: Array3<f32> = Array3::<f32>::zeros((num_patches_x * num_patches_y, patch_size, patch_size));
@@ -160,7 +192,13 @@ pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1:
         for j in 0..num_patches_y {
             // let mut patch_slice = patches.slice_mut(s![i * num_patches_y + j, .., ..]);
             // patch_slice.assign(&u0.slice(s![(i * patch_size)..((i + 1) * patch_size), (j * patch_size)..((j + 1) * patch_size)]));
-            patches.push(u0.slice(s![(i * patch_size)..((i + 1) * patch_size), (j * patch_size)..((j + 1) * patch_size)]).to_owned());
+
+            let start_x = i * (patch_size - patch_overlap);
+            let start_y = j * (patch_size - patch_overlap);
+            let end_x = start_x + patch_size;
+            let end_y = start_y + patch_size;
+
+            patches.push(u0.slice(s![start_x..end_x, start_y..end_y]).to_owned());
         }
     }
 
@@ -170,11 +208,36 @@ pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1:
 
     // Create a new image to store the denoised patches
     let mut denoised_img = Array2::<f32>::zeros((u0.shape()[0], u0.shape()[1]));
+    let mut patch_count = Array2::<f32>::zeros((u0.shape()[0], u0.shape()[1]));
+    let window = centered_hamming_window((patch_size, patch_size));
     for i in 0..num_patches_x {
         for j in 0..num_patches_y {
-            denoised_img.slice_mut(s![(i * patch_size)..((i + 1) * patch_size), (j * patch_size)..((j + 1) * patch_size)]).assign(&denoised_patches[i * num_patches_y + j]);
+            let start_x = i * (patch_size - patch_overlap);
+            let start_y = j * (patch_size - patch_overlap);
+            let end_x = start_x + patch_size;
+            let end_y = start_y + patch_size;
+            let slice_loc = s![start_x..end_x, start_y..end_y];
+            // denoised_img.slice_mut(s![(i * patch_size)..((i + 1) * patch_size), (j * patch_size)..((j + 1) * patch_size)]).assign(&denoised_patches[i * num_patches_y + j]);
+
+            let mut denoised_img_slice = denoised_img.slice_mut(slice_loc);
+            let windowed_patch = &denoised_patches[i * num_patches_y + j] * &window;
+            denoised_img_slice += &windowed_patch;
+            // denoised_img_slice += &denoised_patches[i * num_patches_y + j] * &window;
+            
+            let mut patch_count_slice = patch_count.slice_mut(slice_loc);
+            patch_count_slice += &window;
         }
     }
+    ndarray::Zip::from(&mut denoised_img)
+        .and(&patch_count)
+        .for_each(|denoised, count| {
+            if *count > 0. {
+                *denoised /= *count;
+            }
+        });
+
+    // Crop the denoised image back to the original size
+    let denoised_img = denoised_img.slice(s![..org_shape[0], ..org_shape[1]]).to_owned();
 
     return denoised_img;
 }
