@@ -152,10 +152,10 @@ pub fn tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau
 fn centered_hamming_window(shape: (usize, usize)) -> Array2<f32> {
     let (h, w) = shape;
     let hamming_row = Array1::from_shape_fn(h, |i| {
-        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / (h - 1) as f32).cos()
+        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / h as f32).cos()
     });
     let hamming_col = Array1::from_shape_fn(w, |i| {
-        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / (w - 1) as f32).cos()
+        0.54 - 0.46 * ((2.0 * std::f32::consts::PI * i as f32) / w as f32).cos()
     });
     let hamming_window = Array2::from_shape_fn((h, w), |(i, j)| {
         hamming_row[i] * hamming_col[j]
@@ -163,11 +163,25 @@ fn centered_hamming_window(shape: (usize, usize)) -> Array2<f32> {
     hamming_window
 }
 
+fn centered_hann_window(shape: (usize, usize)) -> Array2<f32> {
+    let (h, w) = shape;
+    let hann_row = Array1::from_shape_fn(h, |i| {
+        0.5 * (1.0 - ((2.0 * std::f32::consts::PI * i as f32) / h as f32).cos())
+    });
+    let hann_col = Array1::from_shape_fn(w, |i| {
+        0.5 * (1.0 - ((2.0 * std::f32::consts::PI * i as f32) / w as f32).cos())
+    });
+    let hann_window = Array2::from_shape_fn((h, w), |(i, j)| {
+        hann_row[i] * hann_col[j]
+    });
+    hann_window
+}
+
 
 pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1: f32, tau: f32, sigma: f32, n_iter: i32) -> Array2<f32> {
     // Split the image into patches
     let patch_size = 64;
-    let patch_overlap = 16;
+    let patch_overlap = 8;
     // let num_patches_x = u0.shape()[0] / patch_size;
     // let num_patches_y = u0.shape()[1] / patch_size;
     let org_shape = u0.shape();
@@ -209,7 +223,7 @@ pub fn parallel_tgv_denoise(u0: &ArrayView2<f32>, lam: f32, alpha0: f32, alpha1:
     // Create a new image to store the denoised patches
     let mut denoised_img = Array2::<f32>::zeros((u0.shape()[0], u0.shape()[1]));
     let mut patch_count = Array2::<f32>::zeros((u0.shape()[0], u0.shape()[1]));
-    let window = centered_hamming_window((patch_size, patch_size));
+    let window = centered_hann_window((patch_size, patch_size));
     for i in 0..num_patches_x {
         for j in 0..num_patches_y {
             let start_x = i * (patch_size - patch_overlap);
