@@ -1,5 +1,7 @@
+pub use wasm_bindgen_rayon::init_thread_pool;
 mod tgv;
 use leptos::{html::Input, logging::log, prelude::*, task::spawn_local};
+use leptos_meta::*;
 use console_error_panic_hook;
 use web_sys::{js_sys, wasm_bindgen::JsCast, HtmlInputElement};
 use image::{DynamicImage, ImageBuffer, ImageFormat, RgbImage, GrayImage};
@@ -8,7 +10,7 @@ use base64::{engine::general_purpose, Engine as _};
 // use wasm_bindgen::prelude::*;
 use ndarray::{Array2, Array3, s};
 use nshare::{self, AsNdarray3};
-pub use wasm_bindgen_rayon::init_thread_pool;
+
 
 
 async fn convert_image_input_to_base_64(input: Option<HtmlInputElement>) -> Result<String, String> {
@@ -191,7 +193,14 @@ fn App() -> impl IntoView {
         )
     };
 
+    provide_meta_context();
     view! {
+        // <main>
+        // <Meta
+        // http_equiv="Content-Security-Policy"
+        // content="worker-src 'self' blob:;"
+        // />
+        // </main>
         <div class="container">
             <h1>"TGV Image Denoising"</h1>
 

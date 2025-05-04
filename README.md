@@ -32,3 +32,5 @@ https://github.com/trunk-rs/trunk/issues/414#issuecomment-2334096961
 
 https://github.com/trunk-rs/trunk/tree/main/examples/wasm_threads
 
+The final key to get it to work was that wasm-bindgen-rayon must be using the `no-bundler` feature
+
